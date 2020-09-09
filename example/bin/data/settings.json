@@ -1,0 +1,8 @@
+{
+    "Canon":{
+        "mirrorX":true,
+        "mirrorY":true,
+        "streamingMethod": "both",
+        "rotate":90
+    }
+}

@@ -1,0 +1,3 @@
+ofxCanon
+ofxModule
+ofxModuleCanon

@@ -1,0 +1,10 @@
+[
+	{
+		"type":"Canon",
+		"inputs":["Presenter"]
+	},
+	{
+		"type":"Presenter",
+		"inputs":["Canon"]
+	}
+]
