@@ -53,7 +53,7 @@ private:
 	
 	ofFbo mirrorFbo;
 	ofFbo rotateFbo;
-
+	vector<shared_ptr<ofxCanon::Device>> devices;
 	
 };
 }

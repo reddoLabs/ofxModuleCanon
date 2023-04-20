@@ -5,10 +5,10 @@ namespace ofxModule {
 	ofxModuleCanon::ofxModuleCanon(string moduleName,string settingsPath) :ModuleRunnable("Canon", moduleName, settingsPath) {
 
 		//setup cam
-		auto devices = ofxCanon::listDevices();
+		devices = ofxCanon::listDevices();
 		isMirrorX = settings["mirrorX"] == nullptr ? false : settings["mirrorX"];
 		isMirrorY = settings["mirrorY"] == nullptr ? false : settings["mirrorY"];
-		streamingMethod = settings["streamingMethod"] == nullptr || settings["streamingMethod"] == "" ? "texture" : settings["streamingMethod"];
+		streamingMethod = settings["streamingMethod"] == nullptr || settings["streamingMethod"].get<string>() == "" ? "texture" : settings["streamingMethod"].get<string>();
 		//width = settings["width"] == nullptr ? 0 : settings["width"];
 		//height = settings["height"] == nullptr ? 0 : settings["height"];
 
@@ -18,7 +18,7 @@ namespace ofxModule {
 			ofLogNotice("Canon", "connect device");
 			device->open();
 			this->device = device;
-			this->device->setLiveViewEnabled(false, false);
+			this->device->setLiveViewEnabled(true, false);
 			break;
 		}
 
@@ -33,6 +33,9 @@ namespace ofxModule {
 		pixPtrPhoto = shared_ptr<ofPixels>(&photoPixels);
 
 		lastActivation = ofGetElapsedTimeMillis();
+
+	//	device->setLiveViewEnabled(true, false);
+	//	ofSleepMillis(2000);
 
 	}
 
@@ -74,9 +77,9 @@ namespace ofxModule {
 			}
 
 			//update live view
-			if (!isPhotoNew)
+			if (!isPhotoNew && device->getLiveViewEnabled())
 			{
-				if (device->getLiveViewEnabled() && device->getLiveView(liveViewPixels)) {
+				if (device->getLiveView(liveViewPixels)) {
 					if (isMirrorX || isMirrorY) {
 						liveViewPixels.mirror(isMirrorY, isMirrorX);
 					}
@@ -100,15 +103,31 @@ namespace ofxModule {
 						ofFbo fbo;
 						fbo.allocate(liveViewPixels.getWidth(), liveViewPixels.getHeight());
 						fbo.begin();
-						ofClear(0);
+						ofClear(32,203,82,0);
 						fbo.end();
 						fbo.readToPixels(blackLiveView);
 					}
+					lastActivation = ofGetElapsedTimeMillis();
 				}
-				else if (ofGetElapsedTimeMillis() - lastActivation < 100 && blackLiveView.isAllocated()) {
+				else if (ofGetElapsedTimeMillis() - lastActivation < 500 && ofGetElapsedTimeMillis() - lastActivation > 100 && blackLiveView.isAllocated()) {
 					liveViewPixels = blackLiveView;
 					texPtrLiveView->loadData(blackLiveView);
-
+				}
+				else if (ofGetElapsedTimeMillis() - lastActivation > 3000) {
+					
+					//liveViewPixels = blackLiveView;
+					//texPtrLiveView->loadData(blackLiveView);
+					device->close();
+					devices = ofxCanon::listDevices();
+					for (auto device : devices) {
+						ofLogNotice("Canon", "connect device");
+						if (device->open()) {
+							this->device = device;
+							this->device->setLiveViewEnabled(true, false);
+						}
+						break;
+					}
+					lastActivation = ofGetElapsedTimeMillis();
 				}
 			}
 
@@ -147,23 +166,24 @@ namespace ofxModule {
 			takePhoto = true;
 		}
 		else if (e.address == "setIdle") {
-			if (e.message["value"].get<bool>() == true && device->getLiveViewEnabled()) {
+			if (e.message["value"].get<bool>() == true) {
 				device->setLiveViewEnabled(false, false);
-				while (device->getLiveViewEnabled())
+				
+				/*while (device->getLiveViewEnabled())
 				{
 					device->setLiveViewEnabled(false, false);
-					sleep(50);
-				}
+					sleep(150);
+				}*/
 				ofLogNotice("proceedModuleEvent", "closing cam");
 			}
-			else if (e.message["value"].get<bool>() == false && !device->getLiveViewEnabled())
+			else //if (e.message["value"].get<bool>() == false)
 			{
 				device->setLiveViewEnabled(true, false);
-				while (!device->getLiveViewEnabled())
+				/*while (!device->getLiveViewEnabled())
 				{
 					device->setLiveViewEnabled(true, false);
-					sleep(50);
-				}
+					sleep(150);
+				}*/
 				lastActivation = ofGetElapsedTimeMillis();
 				ofLogNotice("proceedModuleEvent", "opening cam");
 			}
